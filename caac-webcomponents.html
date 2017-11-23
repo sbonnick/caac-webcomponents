@@ -1,0 +1,36 @@
+<link rel="import" href="../polymer/polymer-element.html">
+
+<dom-module id="caac-webcomponents">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <h2>Hello [[prop1]]!</h2>
+  </template>
+
+  <script>
+    /**
+     * `caac-webcomponents`
+     * web components to interact with caac (rally) via caac proxy
+     *
+     * @customElement
+     * @polymer
+     * @demo demo/index.html
+     */
+    class CaacWebcomponents extends Polymer.Element {
+      static get is() { return 'caac-webcomponents'; }
+      static get properties() {
+        return {
+          prop1: {
+            type: String,
+            value: 'caac-webcomponents'
+          }
+        };
+      }
+    }
+
+    window.customElements.define(CaacWebcomponents.is, CaacWebcomponents);
+  </script>
+</dom-module>

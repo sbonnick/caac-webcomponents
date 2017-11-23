@@ -1,0 +1,125 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+
+<dom-module id="user-story-data">
+  <template>
+    <div id="instances">
+      <template id="template" is="dom-repeat" items="[[_workItems]]">
+        <iron-ajax
+          url="{{item.url}}"
+          handle-as="json"
+          timeout="5000">
+        </iron-ajax>
+      </template>
+    </div>
+  </template>
+
+  <script>
+    'use strict';
+
+    /**
+     * `user-story-data`
+     * web component for getting user story data from CAAC (Rally) from work items
+     *
+     * @customElement
+     * @polymer
+     * @demo demo/index.html
+     */
+    class UserStoryData extends Polymer.Element {
+      static get is() { return 'user-story-data'; }
+      static get properties() {
+        return {
+          proxy: String,
+          items: Array,
+          data: {
+            type: Object,
+            notify: true,
+            readOnly: true
+          },
+          _workItems: Array
+        };
+      }
+
+      static get observers() {
+        return [
+          '_monitorWorkItems(proxy, items)'
+        ]
+      }
+
+      ready() {
+        super.ready()
+        this.$.template.addEventListener("dom-change", e => {this._startWork(e)});
+      }
+
+      _monitorWorkItems(proxy, items) {
+        if (proxy == null || items == null) {
+          this._workItems = []
+          return
+        }
+
+        let dedupeItems = Array.from(new Set(items.join("`").toLowerCase().split("`")))
+
+        var workItems = []
+        for(var i=0; i < dedupeItems.length; i++) {
+          var path = null
+          var wi = dedupeItems[i]
+          if (/^i\d*$/gi.test(wi)) {
+            path = [this.proxy, "initative", wi, "features", "userstories"].join("/")
+          } else if (/^f\d*$/gi.test(wi)) {
+            path = [this.proxy, "feature", wi, "userstories"].join("/")
+          } else {
+            console.error(["Work item", wi, "not supported"].join(" "))
+            workItems = null
+            break
+          }
+
+          workItems.push({ url:  path, name: wi })
+        }
+
+        if (workItems != null) {
+          this._workItems = workItems 
+        } 
+      }
+
+      _startWork(event) {
+        var reqs = this.shadowRoot.getElementById("instances").querySelectorAll("iron-ajax")
+
+        var reqProms = []
+        reqs.forEach(r => {
+          reqProms.push(r.generateRequest().completes)
+        })
+
+        Promise.all(reqProms)
+          .then(requests => {
+            var flat
+            requests.forEach(request => {
+              console.log(request.response.Results)
+
+              if (flat == null) {
+                flat = request.response.Results
+                return
+              }
+
+              for(var i = 0, l = flat.length; i < l; i++) {
+                for(var j = 0, ll = request.response.Results.length; j < ll; j++) {
+                  if(flat[i].FormattedID === request.response.Results[j].FormattedID) {
+                    flat.splice(i, 1, request.response.Results[j]);
+                    break;
+                  }
+                }
+              }
+
+            })
+            this._setData(flat);
+          })
+          .catch(rejected => {
+            console.error("Error when attempting to request user story data")
+            this._setData([]);
+          })
+      }
+
+    }
+
+    window.customElements.define(UserStoryData.is, UserStoryData);
+  </script>
+</dom-module>
