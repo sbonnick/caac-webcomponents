@@ -1,0 +1,152 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../moment-import/moment-import.html">
+<link rel="import" href="../moment-import/moment-weekday-calc-import.html">
+
+<dom-module id="user-story-statistics">
+  <template>
+    
+  </template>
+
+  <script>
+    'use strict';
+
+    /**
+     * `user-story-statistics`
+     * web component for processing user-story data to pull out statisitcs
+     *
+     * @customElement
+     * @polymer
+     * @demo demo/index.html
+     */
+    class userStoryStatistics extends Polymer.Element {
+      static get is() { return 'user-story-statistics'; }
+      static get properties() {
+        return {
+          data: Array,
+          views: Object,
+          stats: {
+            type: Object,
+            notify: true,
+            readOnly: true
+          }
+        }
+      }
+
+      static get observers() {
+        return [
+          '_monitorData(data, views)'
+        ]
+      }
+
+      _dimensions() {
+        return {acceptedCount: 0, acceptedEstimate: 0, acceptedActual: 0}
+      }
+
+      _incrementStats(stat, estimate, cycle) {
+        stat.acceptedCount ++
+        stat.acceptedEstimate += estimate
+        stat.acceptedActual += cycle
+      }
+
+      _generateBaseViews(views) {
+        var view = {}
+        Object.keys(views).forEach(key => {
+          view[key] = this._dimensions()
+        })
+        return view
+      }
+
+      _parseTags(Tags) {
+        var l = []
+        if(Tags != null && Tags._tagsNameArray != null) {
+          Tags._tagsNameArray.forEach(tag => {
+            l.push(tag.Name.toLowerCase())
+          })
+        }
+        return l
+      }
+
+      _monitorData(data, views) {
+        if (data == null) return
+        var stats = {
+          summary: {
+            total: Object.assign({count: data.length, estimate: 0}, this._dimensions()),
+            views: this._generateBaseViews(views)
+          },
+          weekAccepted:  [],
+          monthAccepted: []
+        }
+
+        var min = moment(new Date(8640000000000000))
+        var max = moment(new Date(-8640000000000000))
+
+        for (var i=0; i < data.length; i++) {
+          stats.summary.total.estimate += data[i].PlanEstimate
+
+          if (data[i].AcceptedDate != null) {
+            var cycle = moment().weekdayCalc(data[i].InProgressDate, data[i].AcceptedDate, [1,2,3,4,5])
+            var week  = moment(data[i].AcceptedDate).startOf('isoweek').format('YYYY-MM-DD')
+            var month = moment(data[i].AcceptedDate).startOf('month').format('YYYY-MM-DD')
+
+            // reset min and max
+            min = moment.min(min, moment(data[i].AcceptedDate))
+            max = moment.max(max, moment(data[i].AcceptedDate))
+
+            // setup defaults for a week and month entry
+            if(stats.weekAccepted[week] == null)
+              stats.weekAccepted[week] = { 
+                total: this._dimensions(), 
+                views: this._generateBaseViews(views) 
+              }
+            if(stats.monthAccepted[month] == null)
+              stats.monthAccepted[month] = { 
+                total: this._dimensions(), 
+                views: this._generateBaseViews(views) 
+              }
+            
+            // calculate totals
+            this._incrementStats(stats.summary.total, data[i].PlanEstimate, cycle)
+            this._incrementStats(stats.weekAccepted[week].total, data[i].PlanEstimate, cycle)
+            this._incrementStats(stats.monthAccepted[month].total, data[i].PlanEstimate, cycle)
+
+            // calculate views
+            var tags = this._parseTags(data[i].Tags)
+            Object.keys(views).forEach(key => {  
+              if (views[key].tags.every(val => { return tags.indexOf(val) >=0 })) {
+                this._incrementStats(stats.summary.views[key], data[i].PlanEstimate, cycle)
+                this._incrementStats(stats.weekAccepted[week].views[key], data[i].PlanEstimate, cycle)
+                this._incrementStats(stats.monthAccepted[month].views[key], data[i].PlanEstimate, cycle)
+              }
+            })
+          }
+        }
+
+        //fill in gaps in weekly range
+        var weekPointer  = min.clone().startOf('isoweek')
+        do {
+          if(stats.weekAccepted[weekPointer.format('YYYY-MM-DD')] == null)
+            stats.weekAccepted[weekPointer.format('YYYY-MM-DD')] = { 
+              total: this._dimensions(), 
+              views: this._generateBaseViews(views) 
+            }
+          weekPointer.add(7, 'days')
+        } while (weekPointer.isSameOrBefore(max))
+
+        //fill in gaps in monthly range
+        var monthPointer = min.clone().startOf('month')
+        do {
+          if(stats.monthAccepted[monthPointer.format('YYYY-MM-DD')] == null)
+            stats.monthAccepted[monthPointer.format('YYYY-MM-DD')] = { 
+              total: this._dimensions(), 
+              views: this._generateBaseViews(views) 
+            }
+            monthPointer.add(1, 'month')
+        } while (monthPointer.isSameOrBefore(max))
+
+        this._setStats(stats);
+      }
+    }
+
+    window.customElements.define(userStoryStatistics.is, userStoryStatistics);
+  </script>
+</dom-module>

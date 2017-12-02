@@ -11,6 +11,7 @@
     <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
     <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
     <link rel="import" href="../user-story-data.html">
+    <link rel="import" href="../user-story-statistics.html">
 
     <custom-style>
       <style is="custom-style" include="demo-pages-shared-styles">
@@ -22,13 +23,34 @@
       <h3>Basic caac-webcomponents demo</h3>
       <demo-snippet>
         <template>
-          <div>[[data]]</div>
           <user-story-data
             proxy="http://localhost:8080"
-            items='["I2412", "F13236", "f13236"]'
-            data={{data}}>
+            items='["I2412", "F13236", "f13236"]'>
           </user-story-data>
+          <user-story-statistics id="apc">
+          </user-story-statistics>
         </template>
+        <script>
+          var apc = document.getElementById('apc');
+          
+          apc.views = {
+            response:              { tags: ["response"] },
+            maintenance:           { tags: ["maintenance"] },
+            interrupts:            { tags: ["interrupt"] },
+            responseInterrupts:    { tags: ["interrupt", "response"] },
+            maintenanceInterrupts: { tags: ["interrupt", "maintenance"] },
+            sme:                   { tags: ["sme"] },
+            architecture:          { tags: ["architecture"] }
+          }
+
+          apc.data = [
+            { FormattedID: "US11111", Name: "Story #1", DisplayColor: "#21a2e0", Ready: false, LastBuild: null, LastRun: null, PassingTestCaseCount: 0, TestCaseCount: 0, PlanEstimate: 1, ScheduleState: "Accepted", ScheduleStatePrefix: "A", AcceptedDate: "2017-11-01T13:28:41.850Z", InProgressDate: "2017-10-17T20:34:09.397Z", Package: null, Blocked: false, BlockedReason: null, Tags: { Count: 2, _tagsNameArray: [  { Name: "interrupt", _ref: "/tag/146593252638" }, { Name: "response", _ref: "/tag/146593252639" } ] }, Owner: { _refObjectName: "Bob" }, Iteration: { Name: "17.10.23" }, FlowState: { Name: "Accepted" }, Release: { }, Feature: { FormattedID: "F12345", Name: "Feature #1" } }, 
+            { FormattedID: "US11112", Name: "Story #2", DisplayColor: "#21a2e0", Ready: false, LastBuild: null, LastRun: null, PassingTestCaseCount: 0, TestCaseCount: 0, PlanEstimate: 1, ScheduleState: "Defined", ScheduleStatePrefix: "D", AcceptedDate: null, InProgressDate: null, Package: null, Blocked: true, BlockedReason: "Unknown", Tags: { Count: 1, _tagsNameArray: [ { Name: "interrupt", _ref: "/tag/146593252638" } ] }, Owner: { }, Iteration: { Name: "17.11.13" }, FlowState: { Name: "Defined" }, Release: { }, Feature: { FormattedID: "F12345", Name: "Feature #1" } }, 
+            { FormattedID: "US11113", Name: "Story #3", DisplayColor: "#21a2e0", Ready: false, LastBuild: null, LastRun: null, PassingTestCaseCount: 0, TestCaseCount: 0, PlanEstimate: 5, ScheduleState: "In-Progress", ScheduleStatePrefix: "P", AcceptedDate: null, InProgressDate: "2017-10-26T20:35:37.441Z", Package: null, Blocked: true, BlockedReason: null, Tags: { Count: 0, _tagsNameArray: [ ] }, Owner: { _refObjectName: "Jack" }, Iteration: { Name: "17.11.13" }, FlowState: { Name: "In-Progress" }, Release: { }, Feature: { FormattedID: "F12345", Name: "Feature #1" } }, 
+            { FormattedID: "US11114", Name: "Story #4", DisplayColor: "#21a2e0", Ready: false, LastBuild: null, LastRun: null, PassingTestCaseCount: 0, TestCaseCount: 0, PlanEstimate: 5, ScheduleState: "In-Progress", ScheduleStatePrefix: "P", AcceptedDate: null, InProgressDate: "2017-10-30T13:00:25.375Z", Package: null, Blocked: true, BlockedReason: null, Tags: { Count: 0, _tagsNameArray: [ ] }, Owner: { _refObjectName: "Jack" }, Iteration: { Name: "17.11.13" }, FlowState: { Name: "In-Progress" }, Release: { }, Feature: { FormattedID: "F12345", Name: "Feature #1" } },
+            { FormattedID: "US11115", Name: "Story #5", DisplayColor: "#21a2e0", Ready: false, LastBuild: null, LastRun: null, PassingTestCaseCount: 0, TestCaseCount: 0, PlanEstimate: 1, ScheduleState: "Accepted", ScheduleStatePrefix: "A", AcceptedDate: "2017-11-13T13:28:41.850Z", InProgressDate: "2017-10-17T20:34:09.397Z", Package: null, Blocked: false, BlockedReason: null, Tags: { Count: 1, _tagsNameArray: [ { Name: "response", _ref: "/tag/146593252639" } ] }, Owner: { _refObjectName: "Bob" }, Iteration: { Name: "17.10.23" }, FlowState: { Name: "Accepted" }, Release: { }, Feature: { FormattedID: "F12345", Name: "Feature #1" } }
+          ]
+        </script>
       </demo-snippet>
     </div>
   </body>
