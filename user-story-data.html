@@ -51,6 +51,19 @@
         this.$.template.addEventListener("dom-change", e => {this._startWork(e)});
       }
 
+      _mergeUnique(base, addition) {
+        if (addition == null) return base
+        for(var i = 0; i < addition.length; i++) {
+          for(var j = 0; j < base.length; j++) {
+            if(addition[i].FormattedID === base[j].FormattedID) {
+              addition.splice(i, 1);
+              break;
+            }
+          }
+        }
+        return base.concat(addition)
+      }
+
       _monitorWorkItems(proxy, items) {
         if (proxy == null || items == null) {
           this._workItems = []
@@ -93,22 +106,10 @@
           .then(requests => {
             var flat
             requests.forEach(request => {
-              console.log(request.response.Results)
-
-              if (flat == null) {
+              if (flat == null) 
                 flat = request.response.Results
-                return
-              }
-
-              for(var i = 0, l = flat.length; i < l; i++) {
-                for(var j = 0, ll = request.response.Results.length; j < ll; j++) {
-                  if(flat[i].FormattedID === request.response.Results[j].FormattedID) {
-                    flat.splice(i, 1, request.response.Results[j]);
-                    break;
-                  }
-                }
-              }
-
+              else
+                flat = this._mergeUnique(flat, request.response.Results)
             })
             this._setData(flat);
           })
