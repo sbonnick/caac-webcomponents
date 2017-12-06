@@ -13,6 +13,10 @@ before_install:
 deploy:
 - provider: script
   skip_cleanup: true
-  script: git push --tags
+  script: 
+    - git tags
+    - git config --local user.name "sbonnick"
+    - git config --local user.email "stewart.bonnick@autoclavestudios.com"
+    - git push --tags
   on:
     branch: master
