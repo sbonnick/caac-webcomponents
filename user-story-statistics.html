@@ -26,7 +26,7 @@
           views: Object,
           stats: {
             type: Object,
-            notify: true,
+            notify: true, 
             readOnly: true
           }
         }
@@ -48,12 +48,20 @@
         stat.acceptedActual += cycle
       }
 
-      _generateBaseViews(views) {
-        var view = {}
-        Object.keys(views).forEach(key => {
-          view[key] = this._dimensions()
+      _dimensionsFromList(data) {
+        var dims = {}
+        data.forEach(item => {
+          dims[item] = this._dimensions()
         })
-        return view
+        return dims
+      }
+
+      _dimensionsFromObject(data) {
+        var dims = {}
+        Object.keys(data).forEach(key => {
+          dims[key] = this._dimensions()
+        })
+        return dims
       }
 
       _parseTags(Tags) {
@@ -66,15 +74,39 @@
         return l
       }
 
+      _buildIndexes(data) {
+        var indexes = {
+          tags: [],
+          features: [],
+          owners: [],
+        }
+
+        for (var i=0; i < data.length; i++) {
+          indexes.tags = [...new Set([...indexes.tags ,...this._parseTags(data[i].Tags)])]
+          indexes.features = [...new Set([...indexes.features ,...[data[i].Feature.FormattedID]])]
+          if ("Owner" in data[i] && "_refObjectName" in data[i].Owner)
+            indexes.owners = [...new Set([...indexes.owners ,...[data[i].Owner._refObjectName]])]
+        }
+       
+        return indexes
+      }
+
       _monitorData(data, views) {
         if (data == null) return
+
+        var indexes = this._buildIndexes(data)
+
+        console.log(indexes)
+
         var stats = {
           summary: {
-            total: Object.assign({count: data.length, estimate: 0}, this._dimensions()),
-            views: this._generateBaseViews(views)
+            total:    Object.assign({count: data.length, estimate: 0}, this._dimensions()),
+            views:    this._dimensionsFromObject(views),
+            tags:     this._dimensionsFromList(indexes.tags),
+            features: this._dimensionsFromList(indexes.features),
+            owners:   this._dimensionsFromList(indexes.owners)
           },
-          weekAccepted:  [],
-          monthAccepted: []
+          weekAccepted:  []
         }
 
         var min = moment(new Date(8640000000000000))
@@ -86,7 +118,6 @@
           if (data[i].AcceptedDate != null) {
             var cycle = moment().weekdayCalc(data[i].InProgressDate, data[i].AcceptedDate, [1,2,3,4,5])
             var week  = moment(data[i].AcceptedDate).startOf('isoweek').format('YYYY-MM-DD')
-            var month = moment(data[i].AcceptedDate).startOf('month').format('YYYY-MM-DD')
 
             // reset min and max
             min = moment.min(min, moment(data[i].AcceptedDate))
@@ -95,27 +126,67 @@
             // setup defaults for a week and month entry
             if(stats.weekAccepted[week] == null)
               stats.weekAccepted[week] = { 
-                total: this._dimensions(), 
-                views: this._generateBaseViews(views) 
-              }
-            if(stats.monthAccepted[month] == null)
-              stats.monthAccepted[month] = { 
-                total: this._dimensions(), 
-                views: this._generateBaseViews(views) 
+                total:    this._dimensions(), 
+                views:    this._dimensionsFromObject(views),
+                tags:     this._dimensionsFromList(indexes.tags),
+                features: this._dimensionsFromList(indexes.features),
+                owners:   this._dimensionsFromList(indexes.owners)
               }
             
             // calculate totals
-            this._incrementStats(stats.summary.total, data[i].PlanEstimate, cycle)
-            this._incrementStats(stats.weekAccepted[week].total, data[i].PlanEstimate, cycle)
-            this._incrementStats(stats.monthAccepted[month].total, data[i].PlanEstimate, cycle)
+            this._incrementStats(
+              stats.summary.total, 
+              data[i].PlanEstimate, 
+              cycle)
+
+            this._incrementStats(
+              stats.weekAccepted[week].total, 
+              data[i].PlanEstimate, 
+              cycle)
+
+            // Counters for Features
+            this._incrementStats(
+              stats.summary.features[data[i].Feature.FormattedID], 
+              data[i].PlanEstimate, 
+              cycle)
+
+            this._incrementStats(
+              stats.weekAccepted[week].features[data[i].Feature.FormattedID], 
+              data[i].PlanEstimate, 
+              cycle)
+            
+            // Counters for Owners
+            if ("Owner" in data[i] && "_refObjectName" in data[i].Owner) {
+              this._incrementStats(
+                stats.summary.owners[data[i].Owner._refObjectName], 
+                data[i].PlanEstimate, 
+                cycle)
+              
+              this._incrementStats(
+                stats.weekAccepted[week].owners[data[i].Owner._refObjectName], 
+                data[i].PlanEstimate, 
+                cycle)
+            }
+
+            // Counters for Tags
+            var tags = this._parseTags(data[i].Tags)
+            tags.forEach(tag => {
+              this._incrementStats(
+                stats.summary.tags[tag], 
+                data[i].PlanEstimate, 
+                cycle)
+
+              this._incrementStats(
+                stats.weekAccepted[week].tags[tag], 
+                data[i].PlanEstimate, 
+                cycle)
+            })
 
             // calculate views
-            var tags = this._parseTags(data[i].Tags)
             Object.keys(views).forEach(key => {  
               if (views[key].tags.every(val => { return tags.indexOf(val) >=0 })) {
                 this._incrementStats(stats.summary.views[key], data[i].PlanEstimate, cycle)
                 this._incrementStats(stats.weekAccepted[week].views[key], data[i].PlanEstimate, cycle)
-                this._incrementStats(stats.monthAccepted[month].views[key], data[i].PlanEstimate, cycle)
               }
             })
           }
@@ -126,23 +197,16 @@
         do {
           if(stats.weekAccepted[weekPointer.format('YYYY-MM-DD')] == null)
             stats.weekAccepted[weekPointer.format('YYYY-MM-DD')] = { 
-              total: this._dimensions(), 
-              views: this._generateBaseViews(views) 
+              total:    this._dimensions(), 
+              views:    this._dimensionsFromObject(views), 
+              tags:     this._dimensionsFromList(indexes.tags),
+              features: this._dimensionsFromList(indexes.features),
+              owners:   this._dimensionsFromList(indexes.owners)
             }
           weekPointer.add(7, 'days')
         } while (weekPointer.isSameOrBefore(max))
 
-        //fill in gaps in monthly range
-        var monthPointer = min.clone().startOf('month')
-        do {
-          if(stats.monthAccepted[monthPointer.format('YYYY-MM-DD')] == null)
-            stats.monthAccepted[monthPointer.format('YYYY-MM-DD')] = { 
-              total: this._dimensions(), 
-              views: this._generateBaseViews(views) 
-            }
-            monthPointer.add(1, 'month')
-        } while (monthPointer.isSameOrBefore(max))
-
+        console.log(stats);
         this._setStats(stats);
       }
     }
