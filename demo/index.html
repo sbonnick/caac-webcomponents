@@ -42,6 +42,13 @@
             sme:                   { tags: ["sme"] },
             architecture:          { tags: ["architecture"] }
           }
+  
+          apc.aggregates = {
+            devops:     { any:    {tags: ["response", "maintenance", "sme", "architecture"]} },
+            por:        { none:   {tags: ["response", "maintenance", "sme", "architecture"]} },
+            interrupts: { all:    {tags: ["interrupt"]} },
+            defects:    { all:    {tags: ["defects"]} }
+          }
 
           apc.data = [
             { FormattedID: "US11111", Name: "Story #1", DisplayColor: "#21a2e0", Ready: false, LastBuild: null, LastRun: null, PassingTestCaseCount: 0, TestCaseCount: 0, PlanEstimate: 1, ScheduleState: "Accepted", ScheduleStatePrefix: "A", AcceptedDate: "2017-11-01T13:28:41.850Z", InProgressDate: "2017-10-17T20:34:09.397Z", Package: null, Blocked: false, BlockedReason: null, Tags: { Count: 2, _tagsNameArray: [  { Name: "interrupt", _ref: "/tag/146593252638" }, { Name: "response", _ref: "/tag/146593252639" } ] }, Owner: { _refObjectName: "Bob" }, Iteration: { Name: "17.10.23" }, FlowState: { Name: "Accepted" }, Release: { }, Feature: { FormattedID: "F12345", Name: "Feature #1" } }, 

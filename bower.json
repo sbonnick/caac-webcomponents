@@ -11,7 +11,7 @@
   "dependencies": {
     "polymer": "Polymer/polymer#^2.0.0",
     "iron-ajax": "PolymerElements/iron-ajax#^2.0.6",
-    "moment-import": "sbonnick/moment-import#^1.0.3"
+    "moment-import": "sbonnick/moment-import#^1.0.4"
   },
   "devDependencies": {
     "iron-demo-helpers": "PolymerElements/iron-demo-helpers#^2.0.0",
