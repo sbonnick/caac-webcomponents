@@ -23,7 +23,6 @@
       static get properties() {
         return {
           data: Array,
-          views: Object,
           aggregates: Object,
           stats: {
             type: Object,
@@ -35,7 +34,7 @@
 
       static get observers() {
         return [
-          '_monitorData(data, views, aggregates)'
+          '_monitorData(data, aggregates)'
         ]
       }
 
@@ -96,7 +95,7 @@
         return {acceptedCount: 0, acceptedEstimate: 0, acceptedActual: 0}
       }
 
-      _monitorData(data, views, aggregates) {
+      _monitorData(data, aggregates) {
         if (data == null) return
 
         var indexes = this._buildIndexes(data)
@@ -104,7 +103,6 @@
         var stats = {
           summary: {
             total:      Object.assign({count: data.length, estimate: 0}, this._dimensions()),
-            views:      this._dimensionsFromObject(views),
             aggregates: this._dimensionsFromObject(aggregates),
             tags:       this._dimensionsFromList(indexes.tags),
             features:   this._dimensionsFromList(indexes.features),
@@ -132,7 +130,6 @@
             if(stats.weekAccepted[week] == null)
               stats.weekAccepted[week] = { 
                 total:      this._dimensions(), 
-                views:      this._dimensionsFromObject(views),
                 aggregates: this._dimensionsFromObject(aggregates),
                 tags:       this._dimensionsFromList(indexes.tags),
                 features:   this._dimensionsFromList(indexes.features),
@@ -188,14 +185,6 @@
                 cycle)
             })
 
-            // calculate views
-            Object.keys(views).forEach(key => {  
-              if (views[key].tags.every(val => { return tags.indexOf(val) >=0 })) {
-                this._incrementStats(stats.summary.views[key], data[i].PlanEstimate, cycle)
-                this._incrementStats(stats.weekAccepted[week].views[key], data[i].PlanEstimate, cycle)
-              }
-            }) 
-
             //calculate aggregates
             Object.keys(aggregates).forEach(aggregate => {
               if ('all' in aggregates[aggregate] && !aggregates[aggregate].all.tags.every(val => {return tags.indexOf(val) >=0})) return;
@@ -214,7 +203,6 @@
           if(stats.weekAccepted[weekPointer.format('YYYY-MM-DD')] == null)
             stats.weekAccepted[weekPointer.format('YYYY-MM-DD')] = { 
               total:      this._dimensions(), 
-              views:      this._dimensionsFromObject(views), 
               aggregates: this._dimensionsFromObject(aggregates),
               tags:       this._dimensionsFromList(indexes.tags),
               features:   this._dimensionsFromList(indexes.features),

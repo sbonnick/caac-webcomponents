@@ -1,0 +1,111 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../moment-import/moment-import.html">
+
+<dom-module id="user-story-statistics-reduced-and-pivoted">
+  <template>
+    
+  </template>
+
+  <script>
+    'use strict';
+
+    /**
+     * `user-story-statistics-reduced-and-pivoted`
+     * web component for processing user-story statistics, reducing and pivoited the data
+     *
+     * @customElement
+     * @polymer
+     * @demo demo/index.html
+     */
+    class userStoryStatisticsReduceAndPivot extends Polymer.Element {
+      static get is() { return 'user-story-statistics-reduced-and-pivoted'; }
+      static get properties() {
+        return {
+          stats: Object,
+          reduceWeeks: {
+            type: Number,
+            value: 12
+          },
+          reducedData: {
+            type: Object,
+            notify: true, 
+            readOnly: true
+          }
+        }
+      }
+
+      static get observers() {
+        return [
+          '_pivotWeekStats(stats, reduceWeeks)'
+        ]
+      }
+
+      _pivotWeekStatsRecurse(stats, pivoted, maxWeeks, pointer) {
+        if (maxWeeks <= 0) 
+          return
+        
+        let timestamp = pointer.format('YYYY-MM-DD')
+        let week = stats.weekAccepted[timestamp]
+        // todo: make sure week exists
+        Object.keys(week).forEach(function (topicName) {
+          if (topicName == 'total') 
+              return
+
+          let topic = week[topicName];
+          if (!(topicName in pivoted))
+            pivoted[topicName] = []
+          
+          Object.keys(topic).forEach(function (topicObjectName) {
+
+            let topicObject = topic[topicObjectName];
+            if (!(topicObjectName in pivoted[topicName]))
+              pivoted[topicName][topicObjectName] = []
+
+            pivoted[topicName][topicObjectName].unshift({
+              week: timestamp,
+              count: topicObject.acceptedCount,
+              cycle: topicObject.acceptedActual,
+              countTotal: week['total'].acceptedCount,
+              cycleTotal: week['total'].acceptedActual
+            })
+          })
+        });
+
+        // Recurse
+        this._pivotWeekStatsRecurse(stats, pivoted, maxWeeks -1, pointer.subtract(7, 'days'))
+      }
+
+      _cleanBlankTopics(pivoted) {
+        Object.keys(pivoted).forEach(function (topicName) {
+          Object.keys(pivoted[topicName]).forEach(function (topicObjectName) {
+            let hasData = 0
+            pivoted[topicName][topicObjectName].forEach(function (data) {
+              if (data.count > 0 || data.cycle > 0) {
+                hasData ++
+              }
+            })
+            if (hasData == 0) {
+              delete pivoted[topicName][topicObjectName]
+            }
+          })
+        })
+      }
+
+      _pivotWeekStats(stats, reduceWeeks) {
+        if ( stats == null 
+          || stats.summary.total.count == 0 
+          || reduceWeeks <= 0) 
+            return
+
+        var pivoted = {}
+        var weekPointer = moment(new Date()).startOf('isoweek')
+        this._pivotWeekStatsRecurse(stats, pivoted, reduceWeeks, weekPointer)       
+        this._cleanBlankTopics(pivoted)    
+
+        this._setReducedData(pivoted)
+      }
+    }
+
+    window.customElements.define(userStoryStatisticsReduceAndPivot.is, userStoryStatisticsReduceAndPivot);
+  </script>
+</dom-module>
